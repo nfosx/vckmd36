@@ -1,10 +1,10 @@
 body{
-  background:black;
+  background:#FCD7B9;
   
 }
 
 .contenedor{
-  position:relative;
+  position:absolute;
   width:800px;
   height:600px;
   background:#FCD7B9;
