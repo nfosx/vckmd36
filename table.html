@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ตารางเรียนนักศึกษาแพทย์ปี 2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Sarabun', 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 1px; /* Creates thin grid lines */
+        }
+        .calendar-day {
+            min-height: 120px; 
+            transition: background-color 0.3s;
+        }
+        .calendar-day:hover {
+            background-color: #f0f9ff; 
+        }
+        .event-item {
+            font-size: 0.7rem; 
+            padding: 2px 4px;
+            margin-bottom: 2px;
+            border-radius: 0.25rem; 
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            cursor: pointer; /* Add cursor pointer to indicate clickable */
+        }
+        .event-item:hover {
+            opacity: 0.8;
+        }
+        .day-events-container {
+            max-height: 100px; 
+            overflow-y: auto;
+        }
+        .day-events-container::-webkit-scrollbar {
+            width: 5px;
+        }
+        .day-events-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        .day-events-container::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        .day-events-container::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        .day-number.today { 
+            background-color: #ef4444; 
+            color: white;
+            border-radius: 9999px; 
+            width: 1.5rem; 
+            height: 1.5rem; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50; /* Ensure modal is on top */
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 500px;
+            transform: scale(0.95);
+            transition: transform 0.3s ease;
+        }
+        .modal-overlay.active .modal-content {
+            transform: scale(1);
+        }
+    </style>
+</head>
+<body class="bg-slate-100 p-4 md:p-8">
+    <div class="container mx-auto max-w-7xl bg-white shadow-xl rounded-lg p-4 md:p-6">
+        <header class="flex flex-col sm:flex-row justify-between items-center mb-4 md:mb-6">
+            <h1 class="text-xl md:text-3xl font-bold text-slate-700" id="monthYearHeader"></h1>
+            <div class="flex space-x-2 mt-2 sm:mt-0">
+                <button id="prevMonthBtn" class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-150 shadow">เดือนก่อนหน้า</button>
+                <button id="todayBtn" class="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-150 shadow">วันนี้</button>
+                <button id="nextMonthBtn" class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-150 shadow">เดือนถัดไป</button>
+            </div>
+        </header>
+
+        <div class="calendar-grid bg-slate-300 border border-slate-300 rounded-md overflow-hidden">
+            <div class="text-center font-semibold p-2 bg-slate-200 text-slate-700">อาทิตย์</div>
+            <div class="text-center font-semibold p-2 bg-slate-200 text-slate-700">จันทร์</div>
+            <div class="text-center font-semibold p-2 bg-slate-200 text-slate-700">อังคาร</div>
+            <div class="text-center font-semibold p-2 bg-slate-200 text-slate-700">พุธ</div>
+            <div class="text-center font-semibold p-2 bg-slate-200 text-slate-700">พฤหัสบดี</div>
+            <div class="text-center font-semibold p-2 bg-slate-200 text-slate-700">ศุกร์</div>
+            <div class="text-center font-semibold p-2 bg-slate-200 text-slate-700">เสาร์</div>
+            
+            <template id="calendarDayTemplate">
+                <div class="calendar-day bg-white p-2 border-t border-l border-slate-300">
+                    <div class="day-number font-semibold text-sm"></div>
+                    <div class="day-events-container mt-1 space-y-1">
+                        </div>
+                </div>
+            </template>
+        </div>
+        <div id="calendarDaysContainer" class="calendar-grid">
+            </div>
+    </div>
+
+    <div id="eventModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="modalTitle" class="text-xl font-semibold text-slate-800">รายละเอียดกิจกรรม</h2>
+                <button id="closeModalBtn" class="text-slate-500 hover:text-slate-700 text-2xl">&times;</button>
+            </div>
+            <div id="modalBody" class="text-slate-700">
+                <p><strong>หัวข้อ:</strong> <span id="modalEventTitle"></span></p>
+                <p><strong>เวลา:</strong> <span id="modalEventTime"></span></p>
+                <p><strong>รายละเอียด:</strong> <span id="modalEventDetails"></span></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Timetable Data (events array is extensive, keeping it collapsed for brevity) ---
+        const events = [
+            // WK 1 - June 2025 
+            { date: new Date(2025, 5, 9), startTime: '09:00', endTime: '12:00', title: 'Orientation MDS220+MDS221', details: 'COURSE 1/68', color: 'bg-sky-500', textColor: 'text-white' },
+            { date: new Date(2025, 5, 9), startTime: '14:00', endTime: '16:00', title: 'MDS220 Lab 1 (SEC11)', details: 'Microscopic study, Cytology & Epithelium', color: 'bg-emerald-500', textColor: 'text-white' },
+            { date: new Date(2025, 5, 9), startTime: '14:00', endTime: '16:00', title: 'MDS220 Lab 1 (SEC12)', details: 'Microscopic study, Cytology & Epithelium', color: 'bg-teal-500', textColor: 'text-white' },
+            { date: new Date(2025, 5, 10), startTime: '09:00', endTime: '10:30', title: 'MDS220 Lec 1-3', details: 'Anatomy Term & Intro to joint, CNT, Muscular tissue', color: 'bg-blue-600', textColor: 'text-white' },
+            { date: new Date(2025, 5, 10), startTime: '10:30', endTime: '12:00', title: 'MDS220 Lec 4-6', details: 'Cartilage, Bone, Integument & derivatives', color: 'bg-blue-600', textColor: 'text-white' },
+            { date: new Date(2025, 5, 10), startTime: '13:00', endTime: '16:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 5, 11), startTime: '09:00', endTime: '10:30', title: 'MDS220 Lab 2 (SEC12)', details: 'CNT & Muscular tissue', color: 'bg-teal-500', textColor: 'text-white' },
+            { date: new Date(2025, 5, 11), startTime: '14:00', endTime: '15:30', title: 'MDS220 Lab 2 (SEC11)', details: 'CNT & Muscular tissue', color: 'bg-emerald-500', textColor: 'text-white' },
+            { date: new Date(2025, 5, 12), startTime: '09:00', endTime: '10:30', title: 'MDS220 Lab 3 (SEC11)', details: 'Cartilage, bone & Integument', color: 'bg-emerald-500', textColor: 'text-white' },
+            { date: new Date(2025, 5, 12), startTime: '14:00', endTime: '15:30', title: 'MDS220 Lab 3 (SEC12)', details: 'Cartilage, bone & Integument', color: 'bg-teal-500', textColor: 'text-white' },
+            { date: new Date(2025, 5, 13), startTime: '09:00', endTime: '12:00', title: 'MDS220 Lec 7-9', details: 'Back muscles, vertebral column', color: 'bg-blue-600', textColor: 'text-white' },
+            { date: new Date(2025, 5, 13), startTime: '13:00', endTime: '14:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 5, 13), startTime: '14:00', endTime: '16:00', title: 'เตรียมงานทำบุญอาจารย์ใหญ่', details: 'Student preparation', color: 'bg-amber-500', textColor: 'text-black' },
+            { date: new Date(2025, 5, 14), startTime: '09:00', endTime: '12:00', title: 'ทำบุญอาจารย์ใหญ่', details: 'Annual merit-making ceremony', color: 'bg-orange-500', textColor: 'text-white' },
+            
+            // WK 2 - June 2025
+            { date: new Date(2025, 5, 16), startTime: '09:00', endTime: '10:30', title: 'MDS220 Lec 10-11', details: 'Scapular & shoulder, Pectoral & axilla', color: 'bg-blue-600', textColor: 'text-white' },
+            { date: new Date(2025, 5, 16), startTime: '10:30', endTime: '12:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 5, 16), startTime: '13:00', endTime: '16:00', title: 'MDS220 Lab 4', details: 'Superficial and Intermediate muscles of back', color: 'bg-emerald-500', textColor: 'text-white' },
+            { date: new Date(2025, 5, 17), startTime: '09:00', endTime: '10:30', title: 'MDS220 Lec 12-13', details: 'Flexor & Extensor m. of arm/forearm', color: 'bg-blue-600', textColor: 'text-white' },
+            { date: new Date(2025, 5, 17), startTime: '10:30', endTime: '12:00', title: 'MDS220 Lec 14-15', details: 'Hand muscles, Joint of upper limb', color: 'bg-blue-600', textColor: 'text-white' },
+            { date: new Date(2025, 5, 17), startTime: '13:00', endTime: '16:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 5, 18), startTime: '09:00', endTime: '10:30', title: 'MDS220 Lec 16-17', details: 'Dev. of bone, skin & muscle', color: 'bg-blue-600', textColor: 'text-white' },
+            { date: new Date(2025, 5, 18), startTime: '10:30', endTime: '12:00', title: 'MDS220 Lec 18-19', details: 'Gluteal region, Post. thigh', color: 'bg-blue-600', textColor: 'text-white' },
+            { date: new Date(2025, 5, 18), startTime: '14:00', endTime: '16:00', title: 'MDS220 Lab 5', details: 'Deep back m., Scapular & shoulder', color: 'bg-emerald-500', textColor: 'text-white' },
+            { date: new Date(2025, 5, 19), startTime: '09:00', endTime: '10:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 5, 19), startTime: '10:00', endTime: '12:00', title: 'MDS220 Lec 20-23', details: 'Thigh, leg, foot, lower limb joint', color: 'bg-blue-600', textColor: 'text-white' },
+            { date: new Date(2025, 5, 19), startTime: '13:00', endTime: '16:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 5, 20), startTime: '10:00', endTime: '12:00', title: 'MDS220 Lab 6', details: 'Pectoral and axilla', color: 'bg-emerald-500', textColor: 'text-white' },
+            { date: new Date(2025, 5, 20), startTime: '14:00', endTime: '16:00', title: 'MDS220 Lab 7', details: 'Flexor muscles of arm and forearm', color: 'bg-teal-500', textColor: 'text-white' },
+
+            // WK 3 - June 2025
+            { date: new Date(2025, 5, 23), startTime: '09:00', endTime: '12:00', title: 'MDS221 Lec 1-2', details: 'Post. triangle neck, Ant. triangle neck', color: 'bg-purple-500', textColor: 'text-white' },
+            { date: new Date(2025, 5, 23), startTime: '13:00', endTime: '16:00', title: 'MDS220 Lab 8', details: 'Extensor m. arm/forearm', color: 'bg-emerald-500', textColor: 'text-white' },
+            { date: new Date(2025, 5, 24), startTime: '09:00', endTime: '11:00', title: 'MDS221 Lec 3-4', details: 'Scalp, facial m., Parotid, ear', color: 'bg-purple-500', textColor: 'text-white' },
+            { date: new Date(2025, 5, 24), startTime: '11:00', endTime: '12:00', title: 'MDS221 Lec 5', details: 'Dev. head & neck', color: 'bg-purple-500', textColor: 'text-white' },
+            { date: new Date(2025, 5, 24), startTime: '13:00', endTime: '16:00', title: 'MDS220 Lab 9', details: 'Hand Joint (Demo)', color: 'bg-emerald-500', textColor: 'text-white' },
+            { date: new Date(2025, 5, 25), startTime: '09:00', endTime: '12:00', title: 'MDS221 Lec 6-7', details: 'Temporal, Infratemporal, TMJ, Extraocular m.', color: 'bg-purple-500', textColor: 'text-white' },
+            { date: new Date(2025, 5, 25), startTime: '13:00', endTime: '16:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 5, 26), startTime: '09:00', endTime: '12:00', title: 'MDS221 Lec 8-9', details: 'Thoracic wall, Ant. abdominal wall', color: 'bg-purple-500', textColor: 'text-white' },
+            { date: new Date(2025, 5, 26), startTime: '13:00', endTime: '16:00', title: 'MDS220 Lab 10', details: 'Gluteal, Post. thigh/leg', color: 'bg-emerald-500', textColor: 'text-white' },
+            { date: new Date(2025, 5, 27), startTime: '09:00', endTime: '10:30', title: 'MDS220 Lab 11', details: 'Ant. med. lat. thigh & leg', color: 'bg-emerald-500', textColor: 'text-white' },
+            { date: new Date(2025, 5, 27), startTime: '14:00', endTime: '16:00', title: 'MDS220 Lab 12', details: 'Dorsum, sole, Lower limb joint (demo)', color: 'bg-teal-500', textColor: 'text-white' },
+            
+            // WK 4 - June/July 2025
+            { date: new Date(2025, 5, 30), startTime: '09:00', endTime: '12:00', title: 'MDS221 Lab 1', details: 'Neck I', color: 'bg-pink-500', textColor: 'text-white' },
+            { date: new Date(2025, 5, 30), startTime: '13:00', endTime: '16:00', title: 'MDS221 Lab 2', details: 'Neck II', color: 'bg-pink-500', textColor: 'text-white' },
+            { date: new Date(2025, 6, 1), startTime: '09:00', endTime: '09:30', title: 'MDS211 Orientation', details: 'Course Orientation', color: 'bg-indigo-500', textColor: 'text-white' },
+            { date: new Date(2025, 6, 1), startTime: '09:30', endTime: '10:30', title: 'MDS211 Lec 1', details: 'Intro & Org. CNS', color: 'bg-indigo-500', textColor: 'text-white' },
+            { date: new Date(2025, 6, 1), startTime: '10:30', endTime: '12:00', title: 'MDS211 Lec 2', details: 'Neurohistology', color: 'bg-indigo-500', textColor: 'text-white' },
+            { date: new Date(2025, 6, 1), startTime: '13:00', endTime: '14:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 6, 1), startTime: '14:00', endTime: '16:00', title: 'MDS221 Lab 3', details: 'Scalp, face, parotid', color: 'bg-pink-500', textColor: 'text-white' },
+            { date: new Date(2025, 6, 2), startTime: '09:00', endTime: '10:30', title: 'MDS211 Lec 3', details: 'Properties of Neurons', color: 'bg-indigo-500', textColor: 'text-white' },
+            { date: new Date(2025, 6, 2), startTime: '10:30', endTime: '12:00', title: 'MDS211 Lec 4', details: 'Metabolic PW Neurons', color: 'bg-indigo-500', textColor: 'text-white' },
+            { date: new Date(2025, 6, 2), startTime: '13:00', endTime: '14:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 6, 2), startTime: '14:00', endTime: '16:00', title: 'MDS221 Lab 4', details: 'Cranial fossa, remove brain', color: 'bg-pink-500', textColor: 'text-white' },
+            { date: new Date(2025, 6, 3), startTime: '09:00', endTime: '12:00', title: 'MDS211 Lab 1 (SEC11+12)', details: 'Org. of CNS', color: 'bg-rose-500', textColor: 'text-white' },
+            { date: new Date(2025, 6, 3), startTime: '13:00', endTime: '16:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 6, 4), startTime: '09:00', endTime: '12:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 6, 4), startTime: '13:00', endTime: '16:00', title: 'MDS220 Formative', details: 'Formative Assessment', color: 'bg-yellow-500', textColor: 'text-black' },
+
+            // WK 5 - July 2025
+            { date: new Date(2025, 6, 7), startTime: '09:00', endTime: '12:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 6, 7), startTime: '14:30', endTime: '16:00', title: 'MDS220 Lab Exam', details: 'LAB 1-12', color: 'bg-red-600', textColor: 'text-white' },
+            { date: new Date(2025, 6, 8), startTime: '09:00', endTime: '12:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 6, 8), startTime: '13:00', endTime: '16:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 6, 9), startTime: '09:00', endTime: '12:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 6, 9), startTime: '14:30', endTime: '16:00', title: 'MDS220 Lec Exam', details: 'Lecture Exam', color: 'bg-red-600', textColor: 'text-white' },
+            { date: new Date(2025, 6, 10), startTime: '09:00', endTime: '16:00', title: 'วันอาสาฬบูชา', details: 'Holiday', color: 'bg-green-600', textColor: 'text-white' },
+            { date: new Date(2025, 6, 11), startTime: '09:00', endTime: '16:00', title: 'วันเข้าพรรษา', details: 'Holiday', color: 'bg-green-600', textColor: 'text-white' },
+
+            // WK 6 - July 2025
+            { date: new Date(2025, 6, 14), startTime: '09:00', endTime: '12:00', title: 'MDS221 Lab 5', details: 'Extraocular muscles', color: 'bg-pink-500', textColor: 'text-white' },
+            { date: new Date(2025, 6, 14), startTime: '13:00', endTime: '16:00', title: 'MDS221 Lab 6', details: 'Infratemporal fossa & TMJ', color: 'bg-pink-500', textColor: 'text-white' },
+            { date: new Date(2025, 6, 15), startTime: '09:00', endTime: '12:00', title: 'MDS220 Lec 24-26', details: 'Clinical correlation musculoskeletal', color: 'bg-blue-600', textColor: 'text-white' },
+            { date: new Date(2025, 6, 15), startTime: '13:00', endTime: '16:00', title: 'MDS221 Lab 7', details: 'Thoracic wall', color: 'bg-pink-500', textColor: 'text-white' },
+            { date: new Date(2025, 6, 16), startTime: '09:00', endTime: '10:00', title: 'MDS211 Lec 5+6', details: 'Embryonic dev NS, Dev eye', color: 'bg-indigo-500', textColor: 'text-white' },
+            { date: new Date(2025, 6, 16), startTime: '10:00', endTime: '11:00', title: 'MDS211 Lec 7', details: 'Spinal cord, Blood supply', color: 'bg-indigo-500', textColor: 'text-white' },
+            { date: new Date(2025, 6, 16), startTime: '11:00', endTime: '12:00', title: 'MDS211 Lec 8', details: 'PNS (Cranial/Spinal nerves)', color: 'bg-indigo-500', textColor: 'text-white' },
+            { date: new Date(2025, 6, 16), startTime: '13:00', endTime: '16:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 6, 17), startTime: '09:00', endTime: '12:00', title: 'MDS221 Lec 10-12', details: 'Physiology of muscle', color: 'bg-purple-500', textColor: 'text-white' },
+            { date: new Date(2025, 6, 17), startTime: '13:00', endTime: '16:00', title: 'MDS221 Lab 8', details: 'Ant. abdominal wall', color: 'bg-pink-500', textColor: 'text-white' },
+            { date: new Date(2025, 6, 18), startTime: '09:00', endTime: '10:30', title: 'MDS211 Lec 9+10', details: 'Brainstem, Reticular formation', color: 'bg-indigo-500', textColor: 'text-white' },
+            { date: new Date(2025, 6, 18), startTime: '10:30', endTime: '12:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 6, 18), startTime: '13:00', endTime: '16:00', title: 'MDS211 Lab 2 (SEC11+12)', details: 'Spinal cord & PNS', color: 'bg-rose-500', textColor: 'text-white' },
+            
+            // WK 7 - July 2025
+            { date: new Date(2025, 6, 21), startTime: '09:00', endTime: '12:00', title: 'MDS221 Lab 9 (SEC12)', details: 'Frog skeletal muscle', color: 'bg-pink-500', textColor: 'text-white' },
+            { date: new Date(2025, 6, 21), startTime: '09:00', endTime: '12:00', title: 'MDS211 Lab 3 (SEC11)', details: 'Neurohistology', color: 'bg-rose-500', textColor: 'text-white' },
+            { date: new Date(2025, 6, 21), startTime: '13:00', endTime: '16:00', title: 'MDS221 Lab 9 (SEC11)', details: 'Frog skeletal muscle', color: 'bg-pink-500', textColor: 'text-white' },
+            { date: new Date(2025, 6, 21), startTime: '13:00', endTime: '16:00', title: 'MDS211 Lab 3 (SEC12)', details: 'Neurohistology', color: 'bg-rose-500', textColor: 'text-white' },
+            { date: new Date(2025, 6, 22), startTime: '09:00', endTime: '12:00', title: 'MDS220 Case Disc (SEC11)', details: 'Case Discussion', color: 'bg-cyan-500', textColor: 'text-white' },
+            { date: new Date(2025, 6, 22), startTime: '13:00', endTime: '16:00', title: 'MDS220 Case Disc (SEC12)', details: 'Case Discussion', color: 'bg-cyan-500', textColor: 'text-white' },
+            { date: new Date(2025, 6, 23), startTime: '09:00', endTime: '10:30', title: 'MDS211 Lec 11', details: 'Special sense organs', color: 'bg-indigo-500', textColor: 'text-white' },
+            { date: new Date(2025, 6, 23), startTime: '10:30', endTime: '12:00', title: 'MDS211 Lec 12+13', details: 'Somatosensory, Taste', color: 'bg-indigo-500', textColor: 'text-white' },
+            { date: new Date(2025, 6, 23), startTime: '13:00', endTime: '16:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 6, 24), startTime: '09:00', endTime: '10:30', title: 'MDS211 Lec 14', details: 'Sensory receptor, Neurotransmitters', color: 'bg-indigo-500', textColor: 'text-white' },
+            { date: new Date(2025, 6, 24), startTime: '10:30', endTime: '12:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 6, 24), startTime: '13:00', endTime: '16:00', title: 'MDS211 Lab 4 (SEC11+12)', details: 'Brainstem I', color: 'bg-rose-500', textColor: 'text-white' },
+            { date: new Date(2025, 6, 25), startTime: '09:00', endTime: '10:00', title: 'MDS211 Lec 15', details: 'Visual system', color: 'bg-indigo-500', textColor: 'text-white' },
+            { date: new Date(2025, 6, 25), startTime: '10:00', endTime: '11:00', title: 'MDS211 Lec 16', details: 'Auditory & Vestibular', color: 'bg-indigo-500', textColor: 'text-white' },
+            { date: new Date(2025, 6, 25), startTime: '11:00', endTime: '12:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 6, 25), startTime: '13:00', endTime: '16:00', title: 'MDS211 Lab 5 (SEC11+12)', details: 'Brainstem II', color: 'bg-rose-500', textColor: 'text-white' },
+
+            // WK 8 - July/August 2025
+            { date: new Date(2025, 6, 28), startTime: '09:00', endTime: '16:00', title: 'วันเฉลิมพระชนมพรรษา ร.10', details: 'Holiday', color: 'bg-green-600', textColor: 'text-white' },
+            { date: new Date(2025, 6, 29), startTime: '09:00', endTime: '12:00', title: 'MDS220 Case Pres (SEC11)', details: 'Case Presentation', color: 'bg-sky-600', textColor: 'text-white' },
+            { date: new Date(2025, 6, 29), startTime: '13:00', endTime: '16:00', title: 'MDS220 Case Pres (SEC12)', details: 'Case Presentation', color: 'bg-sky-600', textColor: 'text-white' },
+            { date: new Date(2025, 6, 30), startTime: '09:00', endTime: '10:30', title: 'MDS211 Lec 17', details: 'Motor system', color: 'bg-indigo-500', textColor: 'text-white' },
+            { date: new Date(2025, 6, 30), startTime: '10:30', endTime: '12:00', title: 'MDS211 Lec 18', details: 'Cerebellum', color: 'bg-indigo-500', textColor: 'text-white' },
+            { date: new Date(2025, 6, 30), startTime: '13:00', endTime: '16:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 6, 31), startTime: '09:00', endTime: '10:30', title: 'MDS211 Lec 19', details: 'Cerebrum', color: 'bg-indigo-500', textColor: 'text-white' },
+            { date: new Date(2025, 6, 31), startTime: '10:30', endTime: '12:00', title: 'MDS211 Lec 20+21', details: 'Basal ganglia, Hypothalamus', color: 'bg-indigo-500', textColor: 'text-white' },
+            { date: new Date(2025, 6, 31), startTime: '13:00', endTime: '16:00', title: 'MDS211 Lab 6 (SEC12)', details: 'Histo Special Senses', color: 'bg-rose-500', textColor: 'text-white' },
+            { date: new Date(2025, 6, 31), startTime: '13:00', endTime: '16:00', title: 'MDS221 Lab 10 (SEC11)', details: 'Conf. lab frog', color: 'bg-pink-500', textColor: 'text-white' },
+            { date: new Date(2025, 7, 1), startTime: '09:00', endTime: '10:30', title: 'MDS211 Lec 22+23', details: 'Thalamus, Limbic system', color: 'bg-indigo-500', textColor: 'text-white' },
+            { date: new Date(2025, 7, 1), startTime: '10:30', endTime: '12:00', title: 'MDS211 Lec 24', details: 'ANS I (Structures)', color: 'bg-indigo-500', textColor: 'text-white' },
+            { date: new Date(2025, 7, 1), startTime: '13:00', endTime: '16:00', title: 'MDS211 Lab 6 (SEC11)', details: 'Histo Special Senses', color: 'bg-rose-500', textColor: 'text-white' },
+            { date: new Date(2025, 7, 1), startTime: '13:00', endTime: '16:00', title: 'MDS221 Lab 10 (SEC12)', details: 'Conf. lab frog', color: 'bg-pink-500', textColor: 'text-white' },
+
+            // WK 9 - August 2025
+            { date: new Date(2025, 7, 4), startTime: '09:00', endTime: '12:00', title: 'MDS221 Formative', details: 'Formative Assessment', color: 'bg-yellow-500', textColor: 'text-black' },
+            { date: new Date(2025, 7, 4), startTime: '13:00', endTime: '16:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 7, 5), startTime: '09:00', endTime: '12:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 7, 5), startTime: '13:00', endTime: '16:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 7, 6), startTime: '09:00', endTime: '12:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 7, 6), startTime: '14:00', endTime: '16:00', title: 'MDS221 Lab Exam', details: 'LAB 1-8', color: 'bg-red-600', textColor: 'text-white' },
+            { date: new Date(2025, 7, 7), startTime: '09:00', endTime: '12:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 7, 7), startTime: '13:00', endTime: '16:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 7, 8), startTime: '09:00', endTime: '12:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 7, 8), startTime: '14:00', endTime: '16:00', title: 'MDS221 Lec & MDS220 Clin/Case Exam', details: 'Exams', color: 'bg-red-600', textColor: 'text-white' },
+
+            // WK 10 - August 2025
+            { date: new Date(2025, 7, 11), startTime: '09:00', endTime: '12:00', title: 'MDS211 Lab 7 (SEC11)', details: 'Cerebrum & Cerebellum', color: 'bg-rose-500', textColor: 'text-white' },
+            { date: new Date(2025, 7, 11), startTime: '13:00', endTime: '16:00', title: 'MDS211 Lab 7 (SEC12)', details: 'Cerebrum & Cerebellum', color: 'bg-rose-500', textColor: 'text-white' },
+            { date: new Date(2025, 7, 12), startTime: '09:00', endTime: '16:00', title: 'วันแม่แห่งชาติ', details: 'Holiday', color: 'bg-green-600', textColor: 'text-white' },
+            { date: new Date(2025, 7, 13), startTime: '09:00', endTime: '10:00', title: 'MDS211 Lec 25', details: 'ANS II (Functions)', color: 'bg-indigo-500', textColor: 'text-white' },
+            { date: new Date(2025, 7, 13), startTime: '10:00', endTime: '11:00', title: 'MDS211 Lec 26', details: 'EEG & Sleep', color: 'bg-indigo-500', textColor: 'text-white' },
+            { date: new Date(2025, 7, 13), startTime: '11:00', endTime: '12:00', title: 'MDS211 Lec 27', details: 'Reflex, Pre-lab', color: 'bg-indigo-500', textColor: 'text-white' },
+            { date: new Date(2025, 7, 13), startTime: '13:00', endTime: '16:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 7, 14), startTime: '09:00', endTime: '12:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 7, 14), startTime: '13:00', endTime: '16:00', title: 'MDS211 Formative 1', details: 'LEC 1-16', color: 'bg-yellow-500', textColor: 'text-black' },
+            { date: new Date(2025, 7, 15), startTime: '09:00', endTime: '12:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 7, 15), startTime: '13:00', endTime: '16:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            
+            // WK 11 - August 2025
+            { date: new Date(2025, 7, 18), startTime: '10:00', endTime: '12:00', title: 'MDS211 Lec 28', details: 'Clinical Corr. Nervous Sys.', color: 'bg-indigo-500', textColor: 'text-white' },
+            { date: new Date(2025, 7, 18), startTime: '13:00', endTime: '16:00', title: 'MDS211 Lab 8 (SEC11+12)', details: 'Physical Exam Neuro', color: 'bg-rose-500', textColor: 'text-white' },
+            { date: new Date(2025, 7, 19), startTime: '09:00', endTime: '16:00', title: 'SDL', details: 'Full Day SDL', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 7, 20), startTime: '09:00', endTime: '16:00', title: 'SDL', details: 'Full Day SDL', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 7, 21), startTime: '09:00', endTime: '16:00', title: 'SDL', details: 'Full Day SDL', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 7, 22), startTime: '09:00', endTime: '12:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 7, 22), startTime: '14:00', endTime: '16:00', title: 'MDS211 Lec Exam 1', details: 'LEC 1-16', color: 'bg-red-600', textColor: 'text-white' },
+
+            // WK 12 - August 2025
+            { date: new Date(2025, 7, 25), startTime: '09:00', endTime: '12:00', title: 'MDS211 Case Disc (SEC12)', details: 'Case Discussion', color: 'bg-cyan-500', textColor: 'text-white' },
+            { date: new Date(2025, 7, 25), startTime: '14:00', endTime: '16:00', title: 'MDS211 Case Disc (SEC11)', details: 'Case Discussion', color: 'bg-cyan-500', textColor: 'text-white' },
+            { date: new Date(2025, 7, 26), startTime: '09:00', endTime: '12:00', title: 'MDS211 Lab 9 (SEC12)', details: 'Limbic, Hypothalamus', color: 'bg-rose-500', textColor: 'text-white' },
+            { date: new Date(2025, 7, 26), startTime: '14:00', endTime: '16:00', title: 'MDS211 Lab 9 (SEC11)', details: 'Limbic, Hypothalamus', color: 'bg-rose-500', textColor: 'text-white' },
+            { date: new Date(2025, 7, 27), startTime: '09:00', endTime: '10:30', title: 'MDS211 Lec 29', details: 'Blood supply Brain & Meninges', color: 'bg-indigo-500', textColor: 'text-white' },
+            { date: new Date(2025, 7, 27), startTime: '10:30', endTime: '12:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 7, 27), startTime: '13:00', endTime: '16:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 7, 28), startTime: '09:00', endTime: '12:00', title: 'MDS211 Lab 10 (SEC11)', details: 'Basal ganglia, Thalamus', color: 'bg-rose-500', textColor: 'text-white' },
+            { date: new Date(2025, 7, 28), startTime: '14:00', endTime: '16:00', title: 'MDS211 Lab 10 (SEC12)', details: 'Basal ganglia, Thalamus', color: 'bg-rose-500', textColor: 'text-white' },
+            { date: new Date(2025, 7, 29), startTime: '09:00', endTime: '12:00', title: 'MDS211 Lab 11 (SEC12)', details: 'Reflex & reaction time', color: 'bg-rose-500', textColor: 'text-white' },
+            { date: new Date(2025, 7, 29), startTime: '14:00', endTime: '16:00', title: 'MDS211 Lab 11 (SEC11)', details: 'Reflex & reaction time', color: 'bg-rose-500', textColor: 'text-white' },
+
+            // WK 13 - September 2025
+            { date: new Date(2025, 8, 1), startTime: '09:00', endTime: '12:00', title: 'MDS211 Case Pres (SEC12)', details: 'Case Presentation', color: 'bg-sky-600', textColor: 'text-white' },
+            { date: new Date(2025, 8, 1), startTime: '13:00', endTime: '16:00', title: 'MDS211 Case Pres (SEC11)', details: 'Case Presentation', color: 'bg-sky-600', textColor: 'text-white' },
+            { date: new Date(2025, 8, 2), startTime: '09:00', endTime: '12:00', title: 'MDS211 Lab 12 (SEC11)', details: 'Blood supply brain & Meninges', color: 'bg-rose-500', textColor: 'text-white' },
+            { date: new Date(2025, 8, 2), startTime: '13:00', endTime: '16:00', title: 'MDS211 Lab 12 (SEC12)', details: 'Blood supply brain & Meninges', color: 'bg-rose-500', textColor: 'text-white' },
+            { date: new Date(2025, 8, 3), startTime: '09:00', endTime: '16:00', title: 'SDL', details: 'Full Day SDL', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 8, 4), startTime: '09:00', endTime: '12:00', title: 'MDS211 Lab 13 (SEC12)', details: 'Conf. Reflex & reaction', color: 'bg-rose-500', textColor: 'text-white' },
+            { date: new Date(2025, 8, 4), startTime: '13:00', endTime: '16:00', title: 'MDS211 Lab 13 (SEC11)', details: 'Conf. Reflex & reaction', color: 'bg-rose-500', textColor: 'text-white' },
+            { date: new Date(2025, 8, 5), startTime: '09:00', endTime: '16:00', title: 'SDL', details: 'Full Day SDL', color: 'bg-slate-400', textColor: 'text-white' },
+
+            // WK 14 - September 2025
+            { date: new Date(2025, 8, 8), startTime: '09:30', endTime: '12:00', title: 'MDS211 Formative 2', details: 'LEC 17-29', color: 'bg-yellow-500', textColor: 'text-black' },
+            { date: new Date(2025, 8, 8), startTime: '13:00', endTime: '16:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 8, 9), startTime: '09:00', endTime: '16:00', title: 'SDL', details: 'Full Day SDL', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 8, 10), startTime: '09:00', endTime: '12:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 8, 10), startTime: '14:00', endTime: '16:00', title: 'MDS211 Lab Exam', details: 'LAB 1-11', color: 'bg-red-600', textColor: 'text-white' },
+            { date: new Date(2025, 8, 11), startTime: '09:00', endTime: '16:00', title: 'SDL', details: 'Full Day SDL', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 8, 12), startTime: '09:00', endTime: '12:00', title: 'SDL', details: 'Self-Directed Learning', color: 'bg-slate-400', textColor: 'text-white' },
+            { date: new Date(2025, 8, 12), startTime: '14:00', endTime: '16:00', title: 'MDS211 Lec Exam 2', details: 'LEC 17-29 + Clin/Case', color: 'bg-red-600', textColor: 'text-white' },
+
+            // WK 15 - Re-Exam Week - September 2025
+            { date: new Date(2025, 8, 15), startTime: '09:00', endTime: '12:00', title: 'RE-EXAM MDS220', details: 'Re-Examination', color: 'bg-orange-600', textColor: 'text-white' },
+            { date: new Date(2025, 8, 17), startTime: '09:00', endTime: '12:00', title: 'RE-EXAM MDS221', details: 'Re-Examination', color: 'bg-orange-600', textColor: 'text-white' },
+            { date: new Date(2025, 8, 19), startTime: '09:00', endTime: '12:00', title: 'RE-EXAM Exam 1 MDS211', details: 'Re-Examination', color: 'bg-orange-600', textColor: 'text-white' },
+            { date: new Date(2025, 8, 21), startTime: '09:00', endTime: '12:00', title: 'RE-EXAM Exam 2 MDS211', details: 'Re-Examination', color: 'bg-orange-600', textColor: 'text-white' },
+        ];
+
+        // --- Calendar Logic & Modal Elements ---
+        const monthYearHeader = document.getElementById('monthYearHeader');
+        const calendarDaysContainer = document.getElementById('calendarDaysContainer');
+        const prevMonthBtn = document.getElementById('prevMonthBtn');
+        const nextMonthBtn = document.getElementById('nextMonthBtn');
+        const todayBtn = document.getElementById('todayBtn');
+        const calendarDayTemplate = document.getElementById('calendarDayTemplate');
+
+        const eventModal = document.getElementById('eventModal');
+        const modalEventTitle = document.getElementById('modalEventTitle');
+        const modalEventTime = document.getElementById('modalEventTime');
+        const modalEventDetails = document.getElementById('modalEventDetails');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+
+        const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+        
+        let currentDate = new Date(2025, 5, 1); // Initial view: June 2025 (B.E. 2568)
+
+        function openModalWithEvent(eventData) {
+            modalEventTitle.textContent = eventData.title;
+            modalEventTime.textContent = `${eventData.startTime} - ${eventData.endTime}`;
+            modalEventDetails.textContent = eventData.details;
+            eventModal.classList.add('active');
+        }
+
+        function closeModal() {
+            eventModal.classList.remove('active');
+        }
+
+        closeModalBtn.addEventListener('click', closeModal);
+        eventModal.addEventListener('click', (e) => {
+            // Close modal if clicked outside the modal content
+            if (e.target === eventModal) {
+                closeModal();
+            }
+        });
+
+
+        function renderCalendar() {
+            calendarDaysContainer.innerHTML = ''; 
+            const yearCE = currentDate.getFullYear();
+            const month = currentDate.getMonth(); 
+
+            const yearBE = yearCE + 543;
+            monthYearHeader.textContent = `${thaiMonths[month]} ${yearBE}`;
+
+            const firstDayOfMonth = new Date(yearCE, month, 1);
+            const lastDayOfMonth = new Date(yearCE, month + 1, 0);
+            const daysInMonth = lastDayOfMonth.getDate();
+            const firstDayOfWeek = firstDayOfMonth.getDay(); 
+
+            for (let i = 0; i < firstDayOfWeek; i++) {
+                const blankCell = document.createElement('div');
+                blankCell.className = 'calendar-day bg-slate-50 p-2 border-t border-l border-slate-300';
+                calendarDaysContainer.appendChild(blankCell);
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayCellClone = calendarDayTemplate.content.cloneNode(true);
+                const dayCell = dayCellClone.firstElementChild;
+                const dayNumberDiv = dayCell.querySelector('.day-number');
+                dayNumberDiv.textContent = day;
+                
+                const cellDate = new Date(yearCE, month, day);
+                
+                const today = new Date();
+                if (cellDate.getFullYear() === today.getFullYear() &&
+                    cellDate.getMonth() === today.getMonth() &&
+                    cellDate.getDate() === today.getDate()) {
+                    dayNumberDiv.classList.add('today');
+                }
+
+                const eventsForDay = events.filter(event => 
+                    event.date.getFullYear() === yearCE &&
+                    event.date.getMonth() === month &&
+                    event.date.getDate() === day
+                ).sort((a,b) => { 
+                    if (a.startTime < b.startTime) return -1;
+                    if (a.startTime > b.startTime) return 1;
+                    if (a.title < b.title) return -1;
+                    if (a.title > b.title) return 1;
+                    return 0;
+                });
+
+                const eventsContainer = dayCell.querySelector('.day-events-container');
+                eventsForDay.forEach(eventData => { // Renamed to eventData to avoid conflict
+                    const eventDiv = document.createElement('div');
+                    eventDiv.className = `event-item ${eventData.color} ${eventData.textColor}`;
+                    eventDiv.textContent = `${eventData.startTime} ${eventData.title}`;
+                    // Store full event data directly on the element for easy access in modal
+                    eventDiv.dataset.eventDetails = JSON.stringify(eventData); 
+                    
+                    eventDiv.addEventListener('click', () => {
+                        openModalWithEvent(eventData);
+                    });
+                    eventsContainer.appendChild(eventDiv);
+                });
+                calendarDaysContainer.appendChild(dayCell);
+            }
+
+            const totalCells = firstDayOfWeek + daysInMonth;
+            const remainingCells = (7 - (totalCells % 7)) % 7;
+            for (let i = 0; i < remainingCells; i++) {
+                 const blankCell = document.createElement('div');
+                blankCell.className = 'calendar-day bg-slate-50 p-2 border-t border-l border-slate-300';
+                calendarDaysContainer.appendChild(blankCell);
+            }
+        }
+
+        prevMonthBtn.addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderCalendar();
+        });
+
+        nextMonthBtn.addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderCalendar();
+        });
+        
+        todayBtn.addEventListener('click', () => {
+            const today = new Date();
+            const timetableStartYear = 2025; 
+            const timetableEndYear = 2025; 
+
+            if (today.getFullYear() >= timetableStartYear && today.getFullYear() <= timetableEndYear) {
+                 currentDate = new Date(today.getFullYear(), today.getMonth(), 1);
+            } else {
+                currentDate = new Date(2025, 5, 1); // June 2025
+            }
+            renderCalendar();
+        });
+
+        // Initial render
+        renderCalendar();
+    </script>
+</body>
+</html>
