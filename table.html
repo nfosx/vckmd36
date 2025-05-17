@@ -32,7 +32,7 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            cursor: pointer; /* Add cursor pointer to indicate clickable */
+            cursor: pointer; 
         }
         .event-item:hover {
             opacity: 0.8;
@@ -76,7 +76,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 50; /* Ensure modal is on top */
+            z-index: 50; 
             opacity: 0;
             visibility: hidden;
             transition: opacity 0.3s ease, visibility 0.3s ease;
@@ -104,11 +104,11 @@
     <div class="container mx-auto max-w-7xl bg-white shadow-xl rounded-lg p-4 md:p-6">
         <header class="flex flex-col sm:flex-row justify-between items-center mb-4 md:mb-6">
             <h1 class="text-xl md:text-3xl font-bold text-slate-700" id="monthYearHeader"></h1>
-            <div class="flex space-x-2 mt-2 sm:mt-0">
-                <button id="prevMonthBtn" class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-150 shadow">เดือนก่อนหน้า</button>
-                <button id="todayBtn" class="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-150 shadow">วันนี้</button>
-                <button id="nextMonthBtn" class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-150 shadow">เดือนถัดไป</button>
-            </div>
+            <div class="flex flex-wrap space-x-2 mt-2 sm:mt-0"> 
+                <button id="prevMonthBtn" class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-150 shadow mb-2 sm:mb-0">เดือนก่อนหน้า</button>
+                <button id="todayBtn" class="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-150 shadow mb-2 sm:mb-0">วันนี้</button>
+                <button id="nextMonthBtn" class="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-150 shadow mb-2 sm:mb-0">เดือนถัดไป</button>
+                </div>
         </header>
 
         <div class="calendar-grid bg-slate-300 border border-slate-300 rounded-md overflow-hidden">
@@ -145,6 +145,14 @@
             </div>
         </div>
     </div>
+
+    <button id="exportToIcsBtn" class="fixed bottom-6 right-6 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-150 shadow-lg z-40">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-1" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd" />
+        </svg>
+        เพิ่มไปยังปฏิทิน
+    </button>
+
 
     <script>
         // --- Timetable Data (events array is extensive, keeping it collapsed for brevity) ---
@@ -351,6 +359,7 @@
         const nextMonthBtn = document.getElementById('nextMonthBtn');
         const todayBtn = document.getElementById('todayBtn');
         const calendarDayTemplate = document.getElementById('calendarDayTemplate');
+        const exportToIcsBtn = document.getElementById('exportToIcsBtn'); 
 
         const eventModal = document.getElementById('eventModal');
         const modalEventTitle = document.getElementById('modalEventTitle');
@@ -360,7 +369,7 @@
 
         const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
         
-        let currentDate = new Date(2025, 5, 1); // Initial view: June 2025 (B.E. 2568)
+        let currentDate = new Date(2025, 5, 1); 
 
         function openModalWithEvent(eventData) {
             modalEventTitle.textContent = eventData.title;
@@ -375,10 +384,61 @@
 
         closeModalBtn.addEventListener('click', closeModal);
         eventModal.addEventListener('click', (e) => {
-            // Close modal if clicked outside the modal content
             if (e.target === eventModal) {
                 closeModal();
             }
+        });
+
+        // --- ICS Export Functionality ---
+        function formatToICSDate(date, timeString) {
+            const [hours, minutes] = timeString.split(':').map(Number);
+            const localDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), hours, minutes);
+            
+            const year = localDate.getUTCFullYear();
+            const month = (localDate.getUTCMonth() + 1).toString().padStart(2, '0'); 
+            const day = localDate.getUTCDate().toString().padStart(2, '0');
+            const hour = localDate.getUTCHours().toString().padStart(2, '0');
+            const minute = localDate.getUTCMinutes().toString().padStart(2, '0');
+            const second = localDate.getUTCSeconds().toString().padStart(2, '0');
+            
+            return `${year}${month}${day}T${hour}${minute}${second}Z`;
+        }
+
+        function generateICSContent() {
+            let icsContent = [
+                'BEGIN:VCALENDAR',
+                'VERSION:2.0',
+                'PRODID:-//TimetableApp//EN', 
+            ];
+
+            events.forEach((event, index) => {
+                const uid = `event-${event.date.toISOString().slice(0,10)}-${event.startTime.replace(':','')}-${index}@timetableapp.com`; 
+                const dtstamp = formatToICSDate(new Date(), new Date().toTimeString().slice(0,5)); 
+
+                icsContent.push('BEGIN:VEVENT');
+                icsContent.push(`UID:${uid}`);
+                icsContent.push(`DTSTAMP:${dtstamp}`);
+                icsContent.push(`DTSTART:${formatToICSDate(event.date, event.startTime)}`);
+                icsContent.push(`DTEND:${formatToICSDate(event.date, event.endTime)}`);
+                icsContent.push(`SUMMARY:${event.title}`);
+                icsContent.push(`DESCRIPTION:${event.details.replace(/\n/g, '\\n')}`); 
+                icsContent.push('END:VEVENT');
+            });
+
+            icsContent.push('END:VCALENDAR');
+            return icsContent.join('\r\n'); 
+        }
+
+        exportToIcsBtn.addEventListener('click', () => {
+            const icsData = generateICSContent();
+            const blob = new Blob([icsData], { type: 'text/calendar;charset=utf-8;' });
+            const link = document.createElement("a");
+
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute("download", "timetable.ics");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         });
 
 
@@ -429,11 +489,10 @@
                 });
 
                 const eventsContainer = dayCell.querySelector('.day-events-container');
-                eventsForDay.forEach(eventData => { // Renamed to eventData to avoid conflict
+                eventsForDay.forEach(eventData => { 
                     const eventDiv = document.createElement('div');
                     eventDiv.className = `event-item ${eventData.color} ${eventData.textColor}`;
                     eventDiv.textContent = `${eventData.startTime} ${eventData.title}`;
-                    // Store full event data directly on the element for easy access in modal
                     eventDiv.dataset.eventDetails = JSON.stringify(eventData); 
                     
                     eventDiv.addEventListener('click', () => {
@@ -471,7 +530,7 @@
             if (today.getFullYear() >= timetableStartYear && today.getFullYear() <= timetableEndYear) {
                  currentDate = new Date(today.getFullYear(), today.getMonth(), 1);
             } else {
-                currentDate = new Date(2025, 5, 1); // June 2025
+                currentDate = new Date(2025, 5, 1); 
             }
             renderCalendar();
         });
