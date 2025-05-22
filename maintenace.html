@@ -28,6 +28,10 @@
         .rotate-gear {
             animation: spin 10s linear infinite;
         }
+        /* New class for faster gear spinning */
+        .gear-spinning-fast {
+            animation: spin 0.5s linear infinite; /* Uses the same @keyframes spin but faster */
+        }
         @keyframes spin {
             from {
                 transform: rotate(0deg);
@@ -52,10 +56,11 @@
 </head>
 <body class="animated-gradient text-slate-100 flex items-center justify-center min-h-screen p-6">
     <div class="bg-slate-800/70 backdrop-blur-lg shadow-2xl rounded-2xl p-8 md:p-12 max-w-xl w-full text-center border border-slate-700/50">
-        <div class="mb-8">
-            <svg class="w-24 h-24 mx-auto text-sky-400 rotate-gear" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <div class="mb-6"> <svg id="maintenanceGear" class="w-24 h-24 mx-auto text-sky-400 rotate-gear cursor-pointer transition-colors duration-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.646.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 1.255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.333.184-.582.496-.646.87l-.212 1.282a1.125 1.125 0 01-1.11.94h-2.594a1.125 1.125 0 01-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.759 6.759 0 010-1.255c.007-.378-.137-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.184.582-.496.644-.87l.214-1.282zM15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
+        </div>
+        <div class="h-6 mb-2"> <p id="easterEggMessage" class="text-xs text-slate-400 opacity-0 transition-all duration-500 ease-in-out transform translate-y-2">Psst! We're working hard!</p>
         </div>
 
         <h1 class="text-4xl md:text-5xl font-bold mb-5 text-sky-300 drop-shadow-lg">Site Under Maintenance</h1>
@@ -75,6 +80,46 @@
     <script>
         // Set current year in footer
         document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+        // Easter Egg Interaction
+        const gearIcon = document.getElementById('maintenanceGear');
+        const easterEggMsg = document.getElementById('easterEggMessage');
+        let fastSpinTimeout = null;
+        let isSpinningFast = false;
+
+        if (gearIcon && easterEggMsg) {
+            gearIcon.addEventListener('click', () => {
+                if (isSpinningFast) { // If already fast, do nothing or reset (current: reset)
+                    clearTimeout(fastSpinTimeout);
+                } else {
+                    // Change to fast spin and new color
+                    gearIcon.classList.remove('rotate-gear');
+                    gearIcon.classList.add('gear-spinning-fast');
+                    gearIcon.classList.remove('text-sky-400');
+                    gearIcon.classList.add('text-yellow-400'); // Brighter color
+
+                    // Show message
+                    easterEggMsg.classList.remove('opacity-0', 'translate-y-2');
+                    easterEggMsg.classList.add('opacity-100', 'translate-y-0');
+                }
+                
+                isSpinningFast = true;
+
+                fastSpinTimeout = setTimeout(() => {
+                    // Revert to normal spin and original color
+                    gearIcon.classList.remove('gear-spinning-fast');
+                    gearIcon.classList.add('rotate-gear');
+                    gearIcon.classList.remove('text-yellow-400');
+                    gearIcon.classList.add('text-sky-400');
+
+                    // Hide message
+                    easterEggMsg.classList.remove('opacity-100', 'translate-y-0');
+                    easterEggMsg.classList.add('opacity-0', 'translate-y-2');
+                    
+                    isSpinningFast = false; 
+                }, 2000); // Effect lasts for 2 seconds
+            });
+        }
     </script>
 </body>
 </html>
