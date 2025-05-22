@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Site Under Maintenance</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom styles for animations */
+        .pulse-text {
+            animation: pulse 2.5s infinite ease-in-out;
+        }
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 0.7;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.02);
+            }
+        }
+
+        .rotate-gear {
+            animation: spin 10s linear infinite;
+        }
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Animated Gradient Background */
+        @keyframes gradientAnimation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .animated-gradient {
+            background: linear-gradient(-45deg, #1e3a8a, #3b82f6, #2563eb, #1d4ed8); /* Darker blue shades */
+            background-size: 400% 400%;
+            animation: gradientAnimation 15s ease infinite;
+        }
+    </style>
+</head>
+<body class="animated-gradient text-slate-100 flex items-center justify-center min-h-screen p-6">
+    <div class="bg-slate-800/70 backdrop-blur-lg shadow-2xl rounded-2xl p-8 md:p-12 max-w-xl w-full text-center border border-slate-700/50">
+        <div class="mb-8">
+            <svg class="w-24 h-24 mx-auto text-sky-400 rotate-gear" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.646.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 1.255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.333.184-.582.496-.646.87l-.212 1.282a1.125 1.125 0 01-1.11.94h-2.594a1.125 1.125 0 01-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.759 6.759 0 010-1.255c.007-.378-.137-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.184.582-.496.644-.87l.214-1.282zM15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+        </div>
+
+        <h1 class="text-4xl md:text-5xl font-bold mb-5 text-sky-300 drop-shadow-lg">Site Under Maintenance</h1>
+        <p class="text-lg md:text-xl text-slate-200 mb-6 leading-relaxed">
+            We're currently working hard to enhance your experience. Our site is temporarily unavailable.
+            We sincerely apologize for any inconvenience.
+        </p>
+        <p class="text-md md:text-lg text-sky-200 mb-10 pulse-text">
+            We'll be back online very soon. Thank you for your understanding!
+        </p>
+
+        <div class="mt-10 text-sm text-slate-400">
+            &copy; <span id="currentYear"></span> Vichakarn MED36. All rights reserved.
+        </div>
+    </div>
+
+    <script>
+        // Set current year in footer
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+    </script>
+</body>
+</html>
