@@ -52,15 +52,26 @@
             background-size: 400% 400%;
             animation: gradientAnimation 15s ease infinite;
         }
+
+        /* Styling for the joke area */
+        #jokeContainer {
+            min-height: 4em; /* Reserve space for joke or loading message */
+            transition: all 0.3s ease-in-out;
+        }
+        #jokeText {
+            transition: opacity 0.5s ease-in-out;
+        }
     </style>
 </head>
 <body class="animated-gradient text-slate-100 flex items-center justify-center min-h-screen p-6">
     <div class="bg-slate-800/70 backdrop-blur-lg shadow-2xl rounded-2xl p-8 md:p-12 max-w-xl w-full text-center border border-slate-700/50">
-        <div class="mb-6"> <svg id="maintenanceGear" class="w-24 h-24 mx-auto text-sky-400 rotate-gear cursor-pointer transition-colors duration-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <div class="mb-6">
+            <svg id="maintenanceGear" class="w-24 h-24 mx-auto text-sky-400 rotate-gear cursor-pointer transition-colors duration-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.646.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 1.255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.333.184-.582.496-.646.87l-.212 1.282a1.125 1.125 0 01-1.11.94h-2.594a1.125 1.125 0 01-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.759 6.759 0 010-1.255c.007-.378-.137-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.184.582-.496.644-.87l.214-1.282zM15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
         </div>
-        <div class="h-6 mb-2"> <p id="easterEggMessage" class="text-xs text-slate-400 opacity-0 transition-all duration-500 ease-in-out transform translate-y-2">Psst! We're working hard!</p>
+        <div class="h-6 mb-2">
+            <p id="easterEggMessage" class="text-xs text-slate-400 opacity-0 transition-all duration-500 ease-in-out transform translate-y-2">Psst! We're working hard!</p>
         </div>
 
         <h1 class="text-4xl md:text-5xl font-bold mb-5 text-sky-300 drop-shadow-lg">Site Under Maintenance</h1>
@@ -68,10 +79,20 @@
             We're currently working hard to enhance your experience. Our site is temporarily unavailable.
             We sincerely apologize for any inconvenience.
         </p>
-        <p class="text-md md:text-lg text-sky-200 mb-10 pulse-text">
+        <p class="text-md md:text-lg text-sky-200 mb-8 pulse-text">
             We'll be back online very soon. Thank you for your understanding!
         </p>
 
+        <div class="mt-6 mb-8">
+            <button id="tellJokeButton" class="bg-sky-500 hover:bg-sky-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 ease-in-out transform hover:scale-105">
+                ✨ Tell me a joke
+            </button>
+            <div id="jokeContainer" class="mt-4 text-slate-300 text-sm p-3 bg-slate-700/50 rounded-lg min-h-[4em] flex items-center justify-center">
+                <p id="jokeText" class="opacity-0">Your joke will appear here...</p>
+                <p id="jokeLoading" class="hidden">Thinking of a good one...</p>
+                <p id="jokeError" class="hidden text-red-400">Sorry, couldn't fetch a joke right now.</p>
+            </div>
+        </div>
         <div class="mt-10 text-sm text-slate-400">
             &copy; <span id="currentYear"></span> Vichakarn MED36. All rights reserved.
         </div>
@@ -89,19 +110,19 @@
 
         if (gearIcon && easterEggMsg) {
             gearIcon.addEventListener('click', () => {
-                if (isSpinningFast) { // If already fast, do nothing or reset (current: reset)
-                    clearTimeout(fastSpinTimeout);
-                } else {
-                    // Change to fast spin and new color
-                    gearIcon.classList.remove('rotate-gear');
-                    gearIcon.classList.add('gear-spinning-fast');
-                    gearIcon.classList.remove('text-sky-400');
-                    gearIcon.classList.add('text-yellow-400'); // Brighter color
-
-                    // Show message
-                    easterEggMsg.classList.remove('opacity-0', 'translate-y-2');
-                    easterEggMsg.classList.add('opacity-100', 'translate-y-0');
+                if (isSpinningFast) {
+                    clearTimeout(fastSpinTimeout); // Clear existing timeout to prevent overlap if clicked rapidly
                 }
+                
+                // Change to fast spin and new color
+                gearIcon.classList.remove('rotate-gear');
+                gearIcon.classList.add('gear-spinning-fast');
+                gearIcon.classList.remove('text-sky-400');
+                gearIcon.classList.add('text-yellow-400');
+
+                // Show message
+                easterEggMsg.classList.remove('opacity-0', 'translate-y-2');
+                easterEggMsg.classList.add('opacity-100', 'translate-y-0');
                 
                 isSpinningFast = true;
 
@@ -120,6 +141,77 @@
                 }, 2000); // Effect lasts for 2 seconds
             });
         }
+
+        // Gemini API Joke Feature Script
+        const tellJokeButton = document.getElementById('tellJokeButton');
+        const jokeTextElement = document.getElementById('jokeText');
+        const jokeLoadingElement = document.getElementById('jokeLoading');
+        const jokeErrorElement = document.getElementById('jokeError');
+
+        if (tellJokeButton && jokeTextElement && jokeLoadingElement && jokeErrorElement) {
+            tellJokeButton.addEventListener('click', async () => {
+                // Show loading state, hide others
+                jokeLoadingElement.classList.remove('hidden');
+                jokeTextElement.classList.add('opacity-0'); // Keep it in DOM for layout, but invisible
+                jokeTextElement.classList.add('hidden');    // Then hide to ensure loading is centered
+                jokeErrorElement.classList.add('hidden');
+                tellJokeButton.disabled = true;
+                tellJokeButton.classList.add('opacity-50', 'cursor-not-allowed');
+
+
+                try {
+                    const prompt = "Tell me a short, clean, and funny joke appropriate for a general audience. Make it one or two sentences.";
+                    let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+                    const payload = { contents: chatHistory };
+                    const apiKey = ""; // Provided by Canvas environment
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                    
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        // Try to get more specific error from API if possible
+                        let errorText = `API request failed with status ${response.status}`;
+                        try {
+                            const errorData = await response.json();
+                            if (errorData && errorData.error && errorData.error.message) {
+                                errorText += `: ${errorData.error.message}`;
+                            }
+                        } catch (e) { /* Ignore if parsing error data fails */ }
+                        throw new Error(errorText);
+                    }
+
+                    const result = await response.json();
+
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        const joke = result.candidates[0].content.parts[0].text;
+                        jokeTextElement.textContent = joke;
+                        jokeTextElement.classList.remove('hidden', 'opacity-0');
+                    } else {
+                        throw new Error("No joke found in API response or unexpected response structure.");
+                    }
+                } catch (error) {
+                    console.error("Error fetching joke:", error);
+                    jokeErrorElement.textContent = `Sorry, an error occurred: ${error.message.substring(0,100)}`; // Show a snippet of the error
+                    jokeErrorElement.classList.remove('hidden');
+                    // Optionally show the default placeholder again if an error occurs
+                    // jokeTextElement.textContent = "Your joke will appear here...";
+                    // jokeTextElement.classList.remove('hidden');
+                    // jokeTextElement.classList.add('opacity-0'); // Keep it visible but faded
+                } finally {
+                    // Hide loading, re-enable button
+                    jokeLoadingElement.classList.add('hidden');
+                    tellJokeButton.disabled = false;
+                    tellJokeButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            });
+        }
+
     </script>
 </body>
 </html>
